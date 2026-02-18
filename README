@@ -1,0 +1,29 @@
+GitGrok: AI-Driven Repository Intelligence & Contextual Archaeology
+GitGrok is a high-performance RAG (Retrieval-Augmented Generation) engine designed to bridge the gap between source code, historical intent (Git), and project requirements (Issues). It enables engineers to query a codebase not just for how it works, but why it evolved that way.
+
+System Architecture
+The platform implements a modular RAG pipeline optimized for local-first inference to ensure data privacy and zero-latency development.
+
+Inference Engine: Ollama (Quantized phi3:mini for high throughput on commodity CPUs).
+
+Vector Orchestration: Pinecone Serverless (High-dimensional semantic search with metadata filtering).
+
+Backend: Spring Boot 3.4 (Structured via Spring AI for unified LLM abstraction).
+
+Data Pipeline: Multi-threaded ingestion of Source Code (.java), Git History (Commits), and Issue Trackers.
+
+Advanced Technical Features
+1. Contextual Archaeology
+Unlike standard code-search, GitGrok uses a Cross-Reference Prompting Strategy. It retrieves the code snippet AND the last 3 related commit messages to provide a holistic answer.
+
+2. Optimized Local RAG Pipeline
+Custom QuestionAnswerAdvisor: Implemented strict system prompt templates to eliminate model hallucinations and "echoing."
+
+Streaming SSE Architecture: Utilizes Project Reactor (Flux<String>) to provide real-time word-by-word responses, maintaining a responsive UI under high CPU load.
+
+Hybrid Semantic Search: Configured topK and similarityThreshold dynamically to balance precision and recall across large repositories.
+
+Future Roadmap
+Graph-RAG Integration: Moving from vector similarity to knowledge graphs (Neo4j) to map complex class dependencies.
+
+Parallel Batch Ingestion: Implementing CompletableFuture pipelines to handle 10k+ file repositories efficiently.

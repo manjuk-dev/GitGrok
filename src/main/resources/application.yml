@@ -1,0 +1,4 @@
+spring:
+  ai:
+    retry:
+      enabled: false

@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>GitGrok AI Chat</title>
+    <style>
+        body { font-family: sans-serif; max-width: 800px; margin: 20px auto; padding: 20px; background: #f4f4f9; }
+        #chat-box { border: 1px solid #ccc; padding: 15px; height: 400px; overflow-y: auto; background: white; border-radius: 8px; }
+        input { width: 80%; padding: 10px; border-radius: 4px; border: 1px solid #ddd; }
+        button { padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+    </style>
+</head>
+<body>
+<h2>GitGrok: Code Expert</h2>
+<div id="chat-box"></div>
+<br>
+<input type="text" id="userInput" placeholder="Ask about your code...">
+<button onclick="sendMessage()">Ask</button>
+
+<script>
+    function sendMessage() {
+        const input = document.getElementById('userInput');
+        const chatBox = document.getElementById('chat-box');
+        const message = input.value;
+
+        chatBox.innerHTML += `<p><b>You:</b> ${message}</p><p><b>AI:</b> <span id="current-op"></span></p>`;
+        const outputSpan = document.getElementById('current-op');
+        outputSpan.id = ""; // Unset ID so next message gets a new span
+
+        // Use the standard EventSource to listen to your Flux stream
+        const eventSource = new EventSource(`/chat?message=${encodeURIComponent(message)}`);
+
+        eventSource.onmessage = (event) => {
+          // LLMs often split words like 'deser' and 'ialization'.
+          // Do NOT add a space manually; let the model dictate spacing.
+          outputSpan.innerHTML += event.data;
+         chatBox.scrollTop = chatBox.scrollHeight;
+        };
+
+        eventSource.onerror = () => {
+            eventSource.close(); // Stop listening when the stream ends
+        };
+
+        input.value = "";
+    }
+</script>
+</body>
+</html>
