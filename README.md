@@ -11,9 +11,11 @@ Talk to your GitHub repository. Ask questions, get architect level answers.
 
 ## About
 
-GitGrok is a specialized **RAG (Retrieval Augmented Generation)** application that lets you have a conversation with a GitHub repository's source code. Instead of searching for keywords, it understands the architecture and logic of a project by analyzing its actual files and answers like a senior software architect.
+Reading through an unfamiliar codebase takes a lot of time. GitGrok solves this by combining **Retrieval Augmented Generation (RAG)** with GitHub's source code, turning any repository into a queryable knowledge base that returns precise, context aware answers rather than keyword matches or file links.
 
-> **Local First AI Philosophy** — Your code never leaves your machine. The LLM runs fully locally via Ollama, ensuring complete privacy.
+The pipeline ingests every source file, breaks it into meaningful chunks, and stores the semantic meaning as vectors. At query time, **RAG** retrieves the most relevant code snippets and passes them to a local LLM — producing answers with the depth and context of an engineer who has read every line.
+
+> **Local First by Design** — All inference runs on device via Ollama. Source code and queries never leave the machine, making GitGrok practical for proprietary and sensitive codebases.
 
 ---
 
