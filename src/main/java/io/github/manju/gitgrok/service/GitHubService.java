@@ -1,26 +1,50 @@
 package io.github.manju.gitgrok.service;
 
+import io.github.manju.gitgrok.model.GitHubTreeNode;
+import io.github.manju.gitgrok.model.GitHubTreeResponse;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestTemplate;
 
-// RAG  engine
+import java.util.List;
+
+
 @Service
 public class GitHubService {
-
     private final RestClient restClient;
 
-    public GitHubService(RestClient.Builder builder){
-        this.restClient = builder.baseUrl("https://raw.githubusercontent.com").build();
+    public GitHubService(RestClient.Builder builder, @Value("${github.token}") String token) {
+        System.out.println("DEBUG: Token starts with: " + (token != null && token.length() > 4 ? token.substring(0, 4) : "NULL"));
+        this.restClient = builder
+                .baseUrl("https://api.github.com")
+                .defaultHeader("Authorization", "Bearer " + token)
+                .build();
     }
 
-    public String fetchFileContent(String repoOwner, String repoName, String branch, String filePath) {
-        try {
-            return restClient.get()
-                    .uri("/{owner}/{repo}/{branch}/{file}", repoOwner, repoName, branch, filePath)
-                    .retrieve()
-                    .body(String.class);
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to fetch file from GitHub: " + e.getMessage());
-        }
+    // Fetches every .java file path in the repo using the recursive tree API
+    public List<String> fetchJavaFilePaths(String owner, String repo, String branch) {
+        // We use the recursive=1 flag to get EVERY file in every subfolder
+        String url = String.format("/repos/%s/%s/git/trees/%s?recursive=1", owner, repo, branch);
+
+        GitHubTreeResponse response = restClient.get()
+                .uri(url)
+                .retrieve()
+                .body(GitHubTreeResponse.class);
+
+        if (response == null || response.tree() == null) return List.of();
+
+        List<String> result =  response.tree().stream()
+                .filter(node -> "blob".equals(node.type()))     // Only files, not folders
+                .filter(node -> node.path().endsWith(".java"))  // Only Java files
+                .map(GitHubTreeNode::path)                      // Get the full path string
+                .toList();
+
+        return result;
+    }
+
+    public String fetchFileContent(String owner, String repo, String branch, String path) {
+        String rawUrl = String.format("https://raw.githubusercontent.com/%s/%s/%s/%s", owner, repo, branch, path);
+        return new RestTemplate().getForObject(rawUrl, String.class);
     }
 }

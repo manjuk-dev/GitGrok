@@ -1,6 +1,7 @@
 package io.github.manju.gitgrok.controller;
 
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -15,7 +16,7 @@ public class ChatController {
         this.chatClient = chatClient;
     }
 
-    @GetMapping(value = "/chat", produces = "text/event-stream")
+    @GetMapping(value = "/chat", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<String> chat(@RequestParam String message) {
         return chatClient.prompt()
                 .user(message)

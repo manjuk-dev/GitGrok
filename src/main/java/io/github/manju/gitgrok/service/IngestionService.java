@@ -7,37 +7,49 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 @Service
 public class IngestionService {
-
-    private VectorStore vectorStore;
-    private GitHubService gitHubService;
+    private final VectorStore vectorStore;
+    private final GitHubService gitHubService;
 
     public IngestionService(VectorStore vectorStore, GitHubService gitHubService) {
         this.vectorStore = vectorStore;
         this.gitHubService = gitHubService;
     }
 
-    public void ingestFile(String owner, String repo, String branch, String path) {
-        // 1. Fetch content from GitHub
-        String rawContent = gitHubService.fetchFileContent(owner, repo, branch, path);
 
-        // 2. Create a Document object (Spring AI's core data unit)
-        // We add metadata so the AI knows which repo/file it is looking at later.
-        Document document = new Document(rawContent, Map.of(
-                "repo", repo,
-                "path", path,
-                "owner", owner
-        ));
+    public void ingestEntireRepo(String owner, String repo, String branch) {
+        List<String> javaFiles = gitHubService.fetchJavaFilePaths(owner, repo, branch);
 
-        // 3. Split the document into "Chunks"
-        TokenTextSplitter splitter = new TokenTextSplitter();
-        List<Document> chunks = splitter.apply(List.of(document));
+        System.out.println("DEBUG: GitHub found " + javaFiles.size() + " Java files.");
+        // using parallelStream to ingest many files at once
+        javaFiles.parallelStream().forEach(path -> {
+            ingestSingleFile(owner, repo, branch, path);
+        });
+    }
 
-        // Sending to Pinecone
-        // Spring AI automatically calls Gemini's Embedding model to turn text into numbers (vectors)
-        vectorStore.add(chunks);
-        System.out.println("Successfully ingested: " + path);
+
+    public void ingestSingleFile(String owner, String repo, String branch, String path) {
+        String content = gitHubService.fetchFileContent(owner, repo, branch, path);
+
+        // Create the document
+        Document doc = new Document(content, Map.of("path", path, "repo", repo));
+
+        // Use a TokenTextSplitter to break it into chunks
+        var splitter = new TokenTextSplitter();
+        List<Document> chunks = splitter.apply(List.of(doc));
+
+        // Assign a random UUID to every chunk so Pinecone sees them as unique
+        List<Document> uniqueChunks = chunks.stream()
+                .map(chunk -> new Document(
+                        UUID.randomUUID().toString(),
+                        chunk.getText(),
+                        chunk.getMetadata()))
+                .toList();
+
+        vectorStore.accept(uniqueChunks);
+        System.out.println("Processed successfully " + path);
     }
 }
