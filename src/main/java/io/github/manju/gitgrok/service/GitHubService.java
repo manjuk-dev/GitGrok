@@ -36,11 +36,20 @@ public class GitHubService {
 
         List<String> result =  response.tree().stream()
                 .filter(node -> "blob".equals(node.type()))     // Only files, not folders
-                .filter(node -> node.path().endsWith(".java"))  // Only Java files
+                .filter(node -> node.path().endsWith(".java"))
+                .filter(node -> !isTestFile(node.path()))// Only src Java files
                 .map(GitHubTreeNode::path)                      // Get the full path string
                 .toList();
 
         return result;
+    }
+
+    private boolean isTestFile(String path) {
+        String lowerPath = path.toLowerCase();
+        return lowerPath.contains("/src/test/") ||
+                lowerPath.endsWith("test.java") ||
+                lowerPath.contains("/test/") ||
+                lowerPath.endsWith("tests.java");
     }
 
     public String fetchFileContent(String owner, String repo, String branch, String path) {

@@ -17,9 +17,12 @@ public class ChatController {
     }
 
     @GetMapping(value = "/chat", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public Flux<String> chat(@RequestParam String message) {
+    public Flux<String> chat(@RequestParam String message,  @RequestParam(defaultValue = "default-user")  String sessionId) {
+        String enhancedMessage = "search_query: " + message;
         return chatClient.prompt()
-                .user(message)
+                .user(enhancedMessage)
+                .advisors((a -> a.param("conversation_id", sessionId))
+                )
                 .stream()
                 .content()
                 .map(content -> {
