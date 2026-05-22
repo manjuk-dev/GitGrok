@@ -14,7 +14,14 @@
     <version>1.0.0</version>
     <name>GitGrok</name>
     <description>AI-powered repository intelligence and onboarding assistant</description>
-
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
     <properties>
         <java.version>21</java.version>
     </properties>
