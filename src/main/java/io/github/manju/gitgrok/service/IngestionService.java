@@ -24,7 +24,7 @@ public class IngestionService {
 
     public IngestionService(EmbeddingModel embeddingModel,
                             GitHubService gitHubService,
-                            VectorStore vectorStore,  // ✅ inject VectorStore, not Pinecone
+                            VectorStore vectorStore,
                             @Value("${spring.ai.vectorstore.pinecone.index-name}") String indexName) {
         this.embeddingModel = embeddingModel;
         this.gitHubService = gitHubService;
@@ -101,6 +101,7 @@ public class IngestionService {
 
     public List<CodeChunk> chunkByMethods(String content, String filePath) {
         List<CodeChunk> chunks = new ArrayList<>();
+        // TODO: Upgrade JavaParser to Java 21+ (support pattern matching with instanceof)
         CompilationUnit cu = StaticJavaParser.parse(content);
 
         cu.getTypes().forEach(type -> {
