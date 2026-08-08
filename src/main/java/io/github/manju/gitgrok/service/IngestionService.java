@@ -7,7 +7,8 @@ import com.google.protobuf.util.Values;
 import io.github.manju.gitgrok.model.CodeChunk;
 import io.pinecone.clients.Index;
 import io.pinecone.clients.Pinecone;
-import org.springframework.ai.document.Document;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.ai.embedding.EmbeddingModel;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.beans.factory.annotation.Value;
@@ -17,6 +18,8 @@ import java.util.*;
 
 @Service
 public class IngestionService {
+
+    private static final Logger log = LoggerFactory.getLogger(IngestionService.class);
 
     private final EmbeddingModel embeddingModel;
     private final GitHubService gitHubService;
@@ -36,23 +39,25 @@ public class IngestionService {
     public void ingestEntireRepo(String owner, String repo, String branch) {
         List<String> javaFiles = gitHubService.fetchJavaFilePaths(owner, repo, branch);
         System.out.println("DEBUG: GitHub found " + javaFiles.size() + " Java files.");
-        // using parallelStream to ingest many files at once
         javaFiles.parallelStream().forEach(path -> {
-            ingestSingleFile(owner, repo, branch, path);
+            try {
+                ingestSingleFile(owner, repo, branch, path);
+            } catch (Exception e) {
+                log.error("Failed to ingest file: {}", path, e);
+            }
         });
     }
 
     public void ingestSingleFile(String owner, String repo, String branch, String path) {
         String content = gitHubService.fetchFileContent(owner, repo, branch, path);
+
+        if (content == null || content.isBlank()) {
+            System.out.println("Skipping file with empty/null content: " + path);
+            return;
+        }
+
         String filename = path.substring(path.lastIndexOf("/") + 1);
         String className = filename.replace(".java", "");
-
-        Document doc = new Document(content, Map.of(
-                "path", path,
-                "repo", repo,
-                "filename", filename,
-                "className", className
-        ));
 
         List<CodeChunk> chunks = chunkByMethods(content, path);
 
@@ -101,7 +106,6 @@ public class IngestionService {
 
     public List<CodeChunk> chunkByMethods(String content, String filePath) {
         List<CodeChunk> chunks = new ArrayList<>();
-        // TODO: Upgrade JavaParser to Java 21+ (support pattern matching with instanceof)
         CompilationUnit cu = StaticJavaParser.parse(content);
 
         cu.getTypes().forEach(type -> {

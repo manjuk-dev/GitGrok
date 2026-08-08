@@ -165,7 +165,10 @@ public class HybridPineconeVectorStore implements VectorStore {
     }
 
 
-    private Map<String, Object> buildFilterMap(CodeSearchRequest request) {
+    public Map<String, Object> buildFilterMap(CodeSearchRequest request) {
+        if (request == null) {
+            return null;
+        }
         List<Map<String, Object>> andConditions = new ArrayList<>();
 
         // If filename was extracted, add exact match filter
@@ -196,7 +199,10 @@ public class HybridPineconeVectorStore implements VectorStore {
         return Map.of("$and", andConditions);
     }
 
-    private String detectQueryType(String query) {
+    public String detectQueryType(String query) {
+        if (query == null || query.isBlank()) {
+            return "general";
+        }
         String lower = query.toLowerCase();
 
         //pre-compiled patterns
