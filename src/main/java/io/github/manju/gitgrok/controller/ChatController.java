@@ -21,25 +21,29 @@ public class ChatController {
     }
 
     @GetMapping(value = "/chat", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public Flux<String> chat(@RequestParam String message, @RequestParam(defaultValue = "default-user") String sessionId) {
-        try {
-            String enhancedMessage = "search_query: " + message;
-            return chatClient.prompt()
-                    .user(enhancedMessage)
-                    .advisors((a -> a.param("conversation_id", sessionId))
-                    )
-                    .stream()
-                    .content()
-                    .map(content -> {
-                        // If the AI starts a chunk with a space, add an extra one
-                        // to prevent the browser from swallowing it.
-                        return content.startsWith(" ") ? " " + content : content;
-                    });
-        } catch (Exception e) {
-            log.warn("Ollama unavailable, using mock response{}", String.valueOf(e));
-            return Flux.just("Mock Response: " + message);
+    public Flux<String> chat(@RequestParam String message,
+                             @RequestParam(defaultValue = "default-user") String sessionId) {
 
-        }
+        // Clean query to avoid leaking "search_query:" prefix into prompt text
+        String cleanedMessage = message.replaceFirst("(?i)^search_query:\\s*", "").trim();
 
+        return chatClient.prompt()
+                .user(cleanedMessage)
+                .advisors(a -> a.param("conversation_id", sessionId))
+                .stream()
+                .content()
+                // Prevent space swallowing in browser SSE consumption
+                .map(chunk -> chunk.startsWith(" ") ? " " + chunk : chunk)
+                // Make the stream hot/shared if multiple subscribers/advisors inspect it
+                .share()
+                // Handle reactive stream errors gracefully without throwing 500
+                .onErrorResume(org.springframework.web.reactive.function.client.WebClientResponseException.class, ex -> {
+                    log.error("Groq API Error Details: {}", ex.getResponseBodyAsString());
+                    return Flux.just("The AI service is temporarily unavailable. Please try again.");
+                })
+                .onErrorResume(Exception.class, ex -> {
+                    log.error("Pipeline Error: {}", ex.getMessage());
+                    return Flux.just("An unexpected error occurred while streaming response.");
+                });
     }
 }

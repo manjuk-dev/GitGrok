@@ -6,6 +6,8 @@ import com.google.protobuf.NullValue;
 import com.google.protobuf.Struct;
 import com.google.protobuf.Value;
 import io.pinecone.clients.Index;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.embedding.EmbeddingModel;
 import org.springframework.ai.vectorstore.SearchRequest;
@@ -17,7 +19,10 @@ import java.util.regex.Pattern;
 
 public class HybridPineconeVectorStore implements VectorStore {
 
-
+    private static final Logger log = LoggerFactory.getLogger(HybridPineconeVectorStore.class);
+    private static final Set<String> COMMAND_STOPWORDS = Set.of(
+            "List", "Show", "Give", "What", "How", "Where", "Which", "Explain", "Find"
+    );
     private static final Pattern METHOD_PATTERN =
             Pattern.compile(".*(method|function|endpoint|api).*");
     private static final Pattern CLASS_PATTERN =
@@ -44,6 +49,8 @@ public class HybridPineconeVectorStore implements VectorStore {
     public List<Document> similaritySearch(SearchRequest request) {
         List<String> targetFiles = FileExtractor.extractFileNames(request.getQuery());
 
+        // after extracting candidate matches, filter
+        targetFiles.removeIf(name -> COMMAND_STOPWORDS.contains(name.replace(".java", "")));
         CodeSearchRequest codeRequest = new CodeSearchRequest(
                 request.getQuery(),
                 request.getTopK(),
@@ -87,9 +94,12 @@ public class HybridPineconeVectorStore implements VectorStore {
                     true                  // includeMetadata
             );
 
-            if (response == null) {
-                System.out.println("ERROR: Pinecone returned null response");
-                return new ArrayList<>();
+            if (response == null || response.getMatchesList().isEmpty()) {
+                log.info("No matching vectors found in Pinecone.");
+                // Return a sentinel document instead of an empty list
+                return List.of(new Document(
+                        "[SYSTEM_NOTE: No code snippets matching the query were found in the codebase index.]"
+                ));
             }
 
             //  Map results to Spring AI Documents
@@ -107,7 +117,7 @@ public class HybridPineconeVectorStore implements VectorStore {
             }
             return results;
         } catch (Exception e) {
-            System.out.println("EXCEPTION: Search failed for query: {}" + request.getQuery() + e);
+            log.error("EXCEPTION: Search failed for query: {}{}", request.getQuery(), e);
             return Collections.emptyList();  // or throw a custom exception
         }
     }

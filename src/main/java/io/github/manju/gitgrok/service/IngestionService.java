@@ -38,7 +38,7 @@ public class IngestionService {
 
     public void ingestEntireRepo(String owner, String repo, String branch) {
         List<String> javaFiles = gitHubService.fetchJavaFilePaths(owner, repo, branch);
-        System.out.println("DEBUG: GitHub found " + javaFiles.size() + " Java files.");
+        log.debug("DEBUG: GitHub found {} Java files.", javaFiles.size());
         javaFiles.parallelStream().forEach(path -> {
             try {
                 ingestSingleFile(owner, repo, branch, path);
@@ -52,7 +52,7 @@ public class IngestionService {
         String content = gitHubService.fetchFileContent(owner, repo, branch, path);
 
         if (content == null || content.isBlank()) {
-            System.out.println("Skipping file with empty/null content: " + path);
+            log.info("Skipping file with empty/null content: {}", path);
             return;
         }
 
@@ -101,7 +101,7 @@ public class IngestionService {
             );
         }
 
-        System.out.println("Ingested: " + path + " → " + chunks.size() + " chunks");
+        log.info("Ingested: {} → {} chunks", path, chunks.size());
     }
 
     public List<CodeChunk> chunkByMethods(String content, String filePath) {

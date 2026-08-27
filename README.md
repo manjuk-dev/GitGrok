@@ -4,23 +4,24 @@ Talk to your GitHub repository. Ask questions, get architect-level answers.
 
 ![Java](https://img.shields.io/badge/Java-21+-orange?style=flat-square&logo=openjdk&logoColor=white)
 ![Spring Boot](https://img.shields.io/badge/Spring_Boot-3.4-6DB33F?style=flat-square&logo=springboot&logoColor=white)
-![Ollama](https://img.shields.io/badge/Ollama-Llama_3.2-black?style=flat-square)
+![Groq](https://img.shields.io/badge/Groq-GPT--OSS--120B-black?style=flat-square)
+![Ollama](https://img.shields.io/badge/Ollama-Embeddings-black?style=flat-square)
 ![Pinecone](https://img.shields.io/badge/Pinecone-Serverless-00B4CC?style=flat-square)
 
 ---
 
 ## About
 
-Reading through an unfamiliar codebase takes time. GitGrok solves this by combining **Hybrid Vector Search** with a **Local-First LLM**, turning any repository into a queryable knowledge base that returns precise, architect-level answers.
+Reading through an unfamiliar codebase takes time. GitGrok solves this by combining **Hybrid Vector Search** with a **hosted LLM backend**, turning any repository into a queryable knowledge base that returns precise, architect-level answers.
 
-The pipeline ingests code with intelligent chunking, generates hybrid vectors (dense semantic + sparse keyword), and processes queries locally which is perfect for proprietary and sensitive codebases.
+The pipeline ingests code with intelligent chunking, generates hybrid vectors (dense semantic + sparse keyword) using local embeddings, and answers queries through Groq's hosted inference for fast, low-latency responses.
 
 **Key Capabilities:**
 - Hybrid vector search (semantic + keyword matching)
 - Method-level code chunking (not just files)
 - Multi-file relationship analysis
-- Zero hallucination mode (only references visible code)
-- 95%+ accuracy with 90% faster responses
+- Zero-inference mode (only references visible code, refuses to guess)
+- Fast inference via Groq (sub-5-second typical responses)
 
 ---
 
@@ -32,7 +33,7 @@ GitHub Repo
 [ Intelligent ETL Pipeline ]
   • Recursive scan all .java files
   • Chunk by method, class, block
-  • Generate dense vectors (semantic)
+  • Generate dense vectors (semantic) via Ollama embeddings
   • Generate sparse vectors (code-aware keywords)
   • Store in Pinecone with metadata
     ↓
@@ -42,10 +43,10 @@ User Query
   • Extract target files (1-N files)
   • Dense search: semantic similarity
   • Sparse search: code-aware keywords
-  • Combine & rank results (α=0.5)
+  • Combine & rank results (α=0.6)
   • Filter by target filename
     ↓
-Ollama (Local LLM) → Streaming Answer
+Groq (Hosted LLM) → Streaming Answer
 ```
 
 ---
@@ -55,10 +56,13 @@ Ollama (Local LLM) → Streaming Answer
 | Component | Technology | Role |
 |-----------|-----------|------|
 | Framework | Spring Boot 3.4 | Application engine |
-| AI Orchestration | Spring AI | LLM & Vector Store integration |
-| Local LLM | Ollama (Llama 3.2) | On-device inference |
+| AI Orchestration | Spring AI 1.1.5 | LLM & Vector Store integration |
+| Chat LLM | Groq (`openai/gpt-oss-120b`) | Hosted inference for answering queries |
+| Embedding Model | Ollama (`nomic-embed-text`) | Local embedding generation for retrieval |
 | Vector Database | Pinecone (Serverless) | Hybrid vector storage & search |
 | Code Repository | GitHub REST API | Recursive file fetching |
+
+> **Note on architecture:** Chat inference runs on Groq's hosted API for speed; embeddings still run locally via Ollama, since Groq does not offer an embeddings endpoint. This is a deliberate hybrid setup, not a partial migration.
 
 ---
 
@@ -80,7 +84,7 @@ Combines two search approaches for accuracy:
 
 **Combined (Best of Both)**
 ```
-Final Score = (50% Dense) + (50% Sparse Keyword)
+Final Score = (60% Dense) + (40% Sparse Keyword)
             = Semantic understanding + Exact precision
 ```
 
@@ -121,7 +125,9 @@ Analyze relationships between files naturally with smart file extraction that re
 - `X.java and Y.java` → Extracts both
 - `X class methods` → Extracts "X.java"
 
-### Zero Hallucination Mode
+> File extraction filters out common command verbs (List, Show, Give, What, etc.) to avoid false-positive matches on ordinary English words at the start of a query.
+
+### Zero-Inference Mode
 
 System prompt enforces strict rules:
 
@@ -129,87 +135,12 @@ System prompt enforces strict rules:
 ✗ Never invent method signatures
 ✗ Never fabricate REST endpoints
 ✗ Never assume patterns without evidence
+✗ Never claim a class implements an interface without an explicit
+  implements/extends declaration in the visible snippet
 ✓ Only reference visible snippets
-✓ Mark incomplete information clearly
+✓ Mark incomplete information clearly ("Snippet ends prematurely")
+✓ Distinguish "file not found" from "file found, detail not visible"
 ✓ Ask for clarification when ambiguous
-```
-
----
-
-## Performance Improvements
-
-### Chunking Strategy Impact
-
-Switching from **Simple Semantic Search** to **Hybrid with Method-Level Chunking**:
-
-| Aspect | Simple Semantic | Hybrid + Method-Level | Improvement |
-|--------|-----------------|----------------------|-------------|
-| **Search Accuracy** | 55% | 95% | +73% |
-| **Response Latency** | 250+ sec | 15-25 sec | -90% |
-| **Token Usage** | 2000+ | 850 avg | -60% |
-| **Hallucinations** | ~40% | <5% | -87% |
-| **Chunk Precision** | File-level | Method-level | 5-10x better |
-
-### Why Hybrid Wins
-
-**Simple Semantic Alone:**
-```
-Query: "List all getId methods"
-Result: Returns files containing "get" and "id" (too broad)
-        Misses exact "getId()" matches
-        Low precision: 30-40%
-```
-
-**Hybrid with Method-Level:**
-```
-Query: "List all getId methods"
-Result: Dense → finds semantic "ID retrieval" methods
-        Sparse → finds exact "getId" (stored with 3.0x method weight)
-        Code-aware weighting → methods ranked highest
-        Precision: 95%+
-```
-
-### Frequency Boost Scoring
-
-Sparse vectors implement **code-aware term frequency** during ingestion:
-
-```
-During INGESTION (one-time):
-├─ Method names (getId, setName)    → 3.0x weight (highest)
-├─ Class names (Owner, Pet)         → 2.5x weight
-├─ Property names (age, email)      → 2.0x weight
-├─ Java keywords (if, for, return)  → 0.3x weight (penalized)
-└─ Stop words (the, and, a)         → 0.1x weight (skipped)
-
-Result: Rich sparse vectors with semantic-aware term weights
-        stored in Pinecone
-
-During SEARCH (at query time):
-├─ Pinecone's sparse search engine processes the weighted vectors
-├─ Terms with higher stored weights rank higher naturally
-└─ No additional boost logic needed
-```
-
-**Why It Works:**
-- Methods/classes get higher weight because they're semantically important
-- Keywords penalized because they add noise
-- Stop words skipped to reduce dimensionality
-- Natural frequency from Pinecone reinforces weighted terms
-
-### Filtering Strategy
-
-Smart filtering reduces irrelevant results:
-
-```
-Without filtering:
-  Query: "OwnerController methods"
-  Retrieved: PetController, EntityUtils, Service classes
-  Noise: 60%
-
-With filename filtering:
-  Query: "OwnerController methods"
-  Retrieved: Only OwnerController chunks
-  Noise: 0%
 ```
 
 ---
@@ -224,76 +155,35 @@ Scans GitHub, chunks intelligently, generates hybrid vectors, loads to Pinecone.
 curl -X POST http://localhost:8080/api/v1/ingest/repo \
   -H "Content-Type: application/json" \
   -d '{
-    "owner": "danvega",
-    "repo": "java-rag",
-    "branch": "main"
+    "owner": "spring-petclinic",
+    "repo": "spring-petclinic-rest",
+    "branch": "master"
   }'
 ```
 
 Processing:
 1. Recursively fetch all `.java` files from `src/main` (filters out test files)
 2. Chunk by method, class, logical blocks
-3. Generate dense embeddings (semantic meaning)
+3. Generate dense embeddings via Ollama (semantic meaning)
 4. Generate sparse embeddings (code-aware term weighting)
 5. Store with metadata (filename, class, method)
 
 > **Note:** Only source code from `src/` is ingested. Test files (`src/test`) are excluded to keep the knowledge base focused on production code.
 
-### GET /api/v1/chat?message={query}
+### GET /chat?message={query}
 
-Hybrid search + file extraction + streaming response.
+Hybrid search + file extraction + streaming response via Groq.
 
 ```bash
-curl "http://localhost:8080/api/v1/chat?message=What+does+OwnerController.java+do?"
+curl "http://localhost:8080/chat?message=What+does+VetRestControllerV1.java+do?"
 ```
 
 Processing:
 1. Extract target files from query
 2. Hybrid search (dense + sparse vectors)
 3. Filter by target filenames
-4. Pass top chunks to local LLM
+4. Pass top chunks to Groq for inference
 5. Stream response (Server-Sent Events)
-
----
-
-## Expected Performance
-
-| Query Type | Latency | Tokens | Accuracy |
-|------------|---------|--------|----------|
-| Single File | 3-5 sec | 650-750 | 95%+ |
-| Two Files | 15-20 sec | 950-1050 | 85-90% |
-| Multi-File | 20-30 sec | 1000-1200 | 80-85% |
-| REST Endpoint | 4-6 sec | 700-800 | 92%+ |
-
----
-
-## Key Improvements from Chunking
-
-### File-Level vs Method-Level
-
-**File-Level Chunking (Old):**
-```
-Owner.java (entire file as one chunk)
-  • 500+ lines
-  • Mixed concerns (getters, validation, persistence)
-  • Lower semantic clarity
-  • Harder for LLM to focus
-```
-
-**Method-Level Chunking (New):**
-```
-Owner.java
-  ├─ getId() [5 lines] → Clear semantic unit
-  ├─ setName() [8 lines] → Clear semantic unit
-  ├─ addPet() [15 lines] → Clear semantic unit
-  └─ toString() [10 lines] → Clear semantic unit
-
-Each chunk:
-  • Focused semantic meaning
-  • Precise vector representation
-  • Better LLM understanding
-  • Accurate code snippets
-```
 
 ---
 
@@ -302,9 +192,12 @@ Each chunk:
 ### Prerequisites
 
 ```bash
-# Local LLM
-ollama pull llama2:latest
+# Local embedding model (still required — Groq has no embeddings API)
+ollama pull nomic-embed-text
 ollama serve
+
+# Groq API key (free tier available)
+# https://console.groq.com
 
 # Pinecone (free tier)
 # https://www.pinecone.io/
@@ -313,14 +206,36 @@ ollama serve
 java -version
 ```
 
+### Configuration
+
+Two Spring profiles are supported:
+
+- **`local`** — full Ollama setup (chat + embeddings), useful for offline development or as a fallback if Groq is unavailable.
+- **`prod`** — Groq for chat inference, Ollama for embeddings only.
+
+```bash
+# Local (Ollama chat + embeddings)
+java -jar target/gitgrok-*.jar --spring.profiles.active=local
+
+# Prod (Groq chat, Ollama embeddings)
+java -jar target/gitgrok-*.jar --spring.profiles.active=prod
+```
+
+Set the following environment variables for the `prod` profile:
+```
+GROQ_API_KEY=your_groq_key
+PINECONE_API_KEY=your_pinecone_key
+GITHUB_PAT=your_github_token
+```
+
 ### Ingest & Run
 
 ```bash
 mvn clean package -DskipTests
-java -jar target/gitgrok-*.jar
+java -jar target/gitgrok-*.jar --spring.profiles.active=prod
 ```
 
-Ingest a repository via POST `/api/v1/ingest/repo` and start querying with GET `/api/v1/chat`.
+Ingest a repository via POST `/api/v1/ingest/repo` and start querying with GET `/chat`.
 
 ---
 
@@ -329,10 +244,10 @@ Ingest a repository via POST `/api/v1/ingest/repo` and start querying with GET `
 **Next Releases**
 - [ ] Conversation memory (multi-turn chats)
 - [ ] Automatic re-indexing on new commits
-- [ ] Web UI dashboard
 - [ ] Private repository OAuth
 - [ ] Multi-language support (Python, TypeScript, Go)
-- [ ] Alternative LLMs (GPT-4, Claude, Mistral)
+- [ ] AST-driven code graphs for dependency tracing
+- [ ] Commit history ingestion for architectural "why" questions
 
 ---
 
@@ -362,9 +277,9 @@ MIT License — See LICENSE file
 
 - [Spring AI Documentation](https://github.com/spring-projects/spring-ai)
 - [Pinecone Hybrid Search Guide](https://docs.pinecone.io/guides/data-types/hybrid-search)
+- [Groq Documentation](https://console.groq.com/docs)
 - [Ollama Models](https://ollama.ai/library)
-- [RAG Best Practices](https://www.anthropic.com/research/building-effective-agents)
 
 ---
 
-**Last Updated:** May 2026
+**Last Updated:** August 2026
