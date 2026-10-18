@@ -81,6 +81,7 @@ class EvalReport:
     p95_latency: float
     estimated_cost: float
     failures: list = field(default_factory=list)
+    in_scope_accuracy: float = 0.0
 
 
 # ---- GOLDEN QUERY SET -------------------------------------------------------
@@ -469,7 +470,8 @@ def main() -> None:
     in_scope = [r for r in results if not r.query.out_of_scope]
     in_scope_hits = sum(1 for r in in_scope if r.hit)
     print(f"In-scope accuracy: {in_scope_hits / len(in_scope) * 100:.2f}% ({in_scope_hits}/{len(in_scope)})")
-
+    report.in_scope_accuracy = round(in_scope_hits / len(in_scope) * 100, 2)
+    
     with open(REPORT_PATH, "w", encoding="utf-8") as f:
         json.dump(asdict(report), f, indent=2)
 
