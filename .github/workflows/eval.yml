@@ -1,0 +1,54 @@
+name: GitGrok Eval
+
+on:
+  workflow_dispatch:        # manual "Run workflow" button
+  schedule:
+    - cron: "30 3 * * 1"    # weekly, Monday 03:30 UTC
+
+permissions:
+  contents: write           # needed to commit results to eval-history/
+
+jobs:
+  eval:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install requests
+
+      # Exits non-zero if accuracy < ACCURACY_THRESHOLD, which fails the job (regression gate)
+      - name: Run eval harness
+        working-directory: eval
+        env:
+          GITGROK_BASE_URL: ${{ secrets.GITGROK_BASE_URL }}
+        run: python eval_harness_final.py
+
+      - name: Save report to history
+        if: always()
+        run: |
+          mkdir -p eval-history
+          if [ -f eval/gitgrok-eval-report.json ]; then
+            cp eval/gitgrok-eval-report.json "eval-history/$(date -u +%Y-%m-%d_%H%M).json"
+          fi
+
+      - name: Upload report artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eval-report
+          path: eval/gitgrok-eval-report.json
+          if-no-files-found: ignore
+
+      - name: Commit history
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add eval-history
+          git diff --cached --quiet || (git commit -m "eval: add run $(date -u +%Y-%m-%d)" && git push)
