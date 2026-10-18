@@ -45,7 +45,7 @@ public class FileExtractor {
      */
     public static List<String> extractFileNames(String query) {
         if (query == null || query.trim().isEmpty()) {
-            return null;
+            return new ArrayList<>();
         }
 
         Set<String> files = new LinkedHashSet<>();  // Maintains insertion order, prevents duplicates
@@ -72,7 +72,7 @@ public class FileExtractor {
 
         // Normalize all collected filenames
         if (files.isEmpty()) {
-            return null;
+            return new ArrayList<>();
         }
 
         //FIX: Added deduplication on final normalized filenames to prevent duplicates.
@@ -85,7 +85,7 @@ public class FileExtractor {
             }
         }
 
-        return normalizedFiles.isEmpty() ? null : normalizedFiles;
+        return normalizedFiles;
     }
 
     /**
