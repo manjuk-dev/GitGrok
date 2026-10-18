@@ -370,10 +370,12 @@ def run_query(gq: GoldenQuery, _retries: int = 2) -> QueryResult:
     answer_text = "".join(chunks)
     print(f"DEBUG — answer for {gq.query!r}: {answer_text[:1000]}")
     
-    if "unexpected error occurred while streaming" in " ".join(answer_text.lower().split()) and _retries > 0:
-        print(f"WARN — server error, retrying after 30s: {gq.query!r}")
-        time.sleep(30)
-        return run_query(gq, _retries - 1)
+    if "unexpected error occurred while streaming" in " ".join(answer_text.lower().split()):
+        if _retries > 0:
+            print(f"WARN — server error, retrying after 30s: {gq.query!r}")
+            time.sleep(30)
+            return run_query(gq, _retries - 1)
+        return failed_result(gq)
 
     # Negative query: pass only if GitGrok says nothing relevant was found
     normalized = " ".join(answer_text.lower().split())
@@ -460,7 +462,11 @@ def main() -> None:
     results = []
     for i, gq in enumerate(queries):
         print(f"[{i + 1}/{len(queries)}] {gq.query}")
-        results.append(run_query(gq))
+                result = run_query(gq)
+                results.append(result)
+                if sum(1 for r in results if r.latency_ms == 0.0) > 3:
+                    print("ABORT: too many queries got no valid response (likely rate limited). Report not saved.")
+                    sys.exit(2)
         if i < len(queries) - 1:
             time.sleep(DELAY_BETWEEN_QUERIES)
 
@@ -471,7 +477,7 @@ def main() -> None:
     in_scope_hits = sum(1 for r in in_scope if r.hit)
     print(f"In-scope accuracy: {in_scope_hits / len(in_scope) * 100:.2f}% ({in_scope_hits}/{len(in_scope)})")
     report.in_scope_accuracy = round(in_scope_hits / len(in_scope) * 100, 2)
-    
+
     with open(REPORT_PATH, "w", encoding="utf-8") as f:
         json.dump(asdict(report), f, indent=2)
 
