@@ -233,6 +233,7 @@ def load_golden_queries() -> list[GoldenQuery]:
         GoldenQuery(
             query="find the owner repository implementation",
             expected_file=["JpaOwnerRepositoryImpl.java", "JdbcOwnerRepositoryImpl.java"],
+            expected_method=["findById", "findByLastName"],
             adversarial=True,
         ),
         GoldenQuery(
