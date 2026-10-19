@@ -462,11 +462,11 @@ def main() -> None:
     results = []
     for i, gq in enumerate(queries):
         print(f"[{i + 1}/{len(queries)}] {gq.query}")
-                result = run_query(gq)
-                results.append(result)
-                if sum(1 for r in results if r.latency_ms == 0.0) > 3:
-                    print("ABORT: too many queries got no valid response (likely rate limited). Report not saved.")
-                    sys.exit(2)
+        result = run_query(gq)
+        results.append(result)
+        if sum(1 for r in results if r.latency_ms == 0.0) > 3:
+            print("ABORT: too many queries got no valid response (likely rate limited). Report not saved.")
+            sys.exit(2)
         if i < len(queries) - 1:
             time.sleep(DELAY_BETWEEN_QUERIES)
 
