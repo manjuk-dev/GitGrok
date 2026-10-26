@@ -69,6 +69,7 @@ class QueryResult:
     hit: bool
     rank: int
     latency_ms: float
+    reason: str = ""
 
 
 @dataclass
@@ -328,7 +329,7 @@ def load_golden_queries() -> list[GoldenQuery]:
 
 # ---- EXECUTION --------------------------------------------------------------
 def failed_result(gq: GoldenQuery) -> QueryResult:
-    return QueryResult(query=gq, hit=False, rank=-1, latency_ms=0.0)
+    return QueryResult(query=gq, hit=False, rank=-1, latency_ms=0.0, reason="no_response")
 
 
 def run_query(gq: GoldenQuery, _retries: int = 2) -> QueryResult:
@@ -384,10 +385,10 @@ def run_query(gq: GoldenQuery, _retries: int = 2) -> QueryResult:
 
     if not gq.should_retrieve:
         hit = not_found or any(m in normalized for m in NEGATIVE_EXTRA_MARKERS)
-        return QueryResult(query=gq, hit=hit, rank=1 if hit else -1, latency_ms=latency_ms)
+        return QueryResult(query=gq, hit=hit, rank=1 if hit else -1, latency_ms=latency_ms, reason="" if hit else "wrong_answer")
 
     if not_found:
-        return QueryResult(query=gq, hit=False, rank=-1, latency_ms=latency_ms)
+        return QueryResult(query=gq, hit=False, rank=-1, latency_ms=latency_ms, reason="not_found")
 
     def name_in_text(name: str) -> bool:
         bare = name.replace(".java", "")
@@ -401,7 +402,7 @@ def run_query(gq: GoldenQuery, _retries: int = 2) -> QueryResult:
         method_hit = any(name_in_text(m) for m in gq.expected_method)
         hit = file_hit or method_hit
 
-    return QueryResult(query=gq, hit=hit, rank=1 if hit else -1, latency_ms=latency_ms)
+    return QueryResult(query=gq, hit=hit, rank=1 if hit else -1, latency_ms=latency_ms, reason="" if hit else "wrong_answer")
 
 
 def percentile(sorted_values: list[float], pct: float) -> float:
@@ -425,6 +426,7 @@ def build_report(results: list[QueryResult]) -> EvalReport:
             "expectedFile": r.query.expected_file,
             "expectedMethod": r.query.expected_method,
             "negative": not r.query.should_retrieve,
+            "reason": r.reason,
         }
         for r in results
         if not r.hit
