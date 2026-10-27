@@ -1,0 +1,148 @@
+{
+  "timestamp": "2026-10-27T06:30:29.333460+00:00",
+  "total_queries": 35,
+  "hits": 22,
+  "accuracy": 62.86,
+  "p50_latency": 2137.6,
+  "p95_latency": 2929.2,
+  "estimated_cost": 0.0532,
+  "failures": [
+    {
+      "query": "where is the owner entity defined",
+      "expectedFile": [
+        "Owner.java"
+      ],
+      "expectedMethod": null,
+      "negative": false,
+      "reason": "not_found"
+    },
+    {
+      "query": "where is the pet entity defined",
+      "expectedFile": [
+        "Pet.java"
+      ],
+      "expectedMethod": null,
+      "negative": false,
+      "reason": "not_found"
+    },
+    {
+      "query": "where is the vet entity defined",
+      "expectedFile": [
+        "Vet.java"
+      ],
+      "expectedMethod": null,
+      "negative": false,
+      "reason": "not_found"
+    },
+    {
+      "query": "where is the visit entity defined",
+      "expectedFile": [
+        "Visit.java"
+      ],
+      "expectedMethod": null,
+      "negative": false,
+      "reason": "not_found"
+    },
+    {
+      "query": "where are pet types defined",
+      "expectedFile": [
+        "PetType.java"
+      ],
+      "expectedMethod": null,
+      "negative": false,
+      "reason": "not_found"
+    },
+    {
+      "query": "how is a pet removed from an owner",
+      "expectedFile": [
+        "OwnerRestControllerV1.java"
+      ],
+      "expectedMethod": [
+        "deletePet"
+      ],
+      "negative": false,
+      "reason": "not_found"
+    },
+    {
+      "query": "how does a request to add a pet flow from the REST controller to the database",
+      "expectedFile": [
+        "OwnerRestControllerV1.java",
+        "PetRepository.java",
+        "JpaPetRepositoryImpl.java",
+        "JdbcPetRepositoryImpl.java"
+      ],
+      "expectedMethod": null,
+      "negative": false,
+      "reason": "not_found"
+    },
+    {
+      "query": "how does creating a visit for a pet flow through the service layer",
+      "expectedFile": [
+        "VisitRestControllerV1.java",
+        "ClinicServiceImpl.java"
+      ],
+      "expectedMethod": [
+        "addVisit"
+      ],
+      "negative": false,
+      "reason": "not_found"
+    },
+    {
+      "query": "where is the logic for registering an animal under a customer",
+      "expectedFile": [
+        "OwnerRestControllerV1.java",
+        "Pet.java"
+      ],
+      "expectedMethod": [
+        "addPetToOwner"
+      ],
+      "negative": false,
+      "reason": "not_found"
+    },
+    {
+      "query": "how does the application store appointments for animals",
+      "expectedFile": [
+        "Visit.java",
+        "VisitRestControllerV1.java"
+      ],
+      "expectedMethod": [
+        "addVisit"
+      ],
+      "negative": false,
+      "reason": "not_found"
+    },
+    {
+      "query": "where is pet creation implemented",
+      "expectedFile": [
+        "OwnerRestControllerV1.java",
+        "PetRestControllerV1.java"
+      ],
+      "expectedMethod": [
+        "addPetToOwner"
+      ],
+      "negative": false,
+      "reason": "not_found"
+    },
+    {
+      "query": "how are invalid pet ids handled",
+      "expectedFile": [
+        "PetRestControllerV1.java",
+        "OwnerRestControllerV1.java"
+      ],
+      "expectedMethod": null,
+      "negative": false,
+      "reason": "not_found"
+    },
+    {
+      "query": "where is validation performed when creating a visit",
+      "expectedFile": [
+        "Visit.java",
+        "VisitRestControllerV1.java"
+      ],
+      "expectedMethod": null,
+      "negative": false,
+      "reason": "not_found"
+    }
+  ],
+  "in_scope_accuracy": 73.33
+}
