@@ -8,7 +8,7 @@ Talk to your GitHub repository. Ask questions, get architect-level answers.
 ![Ollama](https://img.shields.io/badge/Ollama-Embeddings-black?style=flat-square)
 ![Pinecone](https://img.shields.io/badge/Pinecone-Serverless-00B4CC?style=flat-square)
 
-**Live benchmark:** https://<username>.github.io/GitGrok/benchmark.html
+**Live benchmark:** https://manjuk-dev.github.io/GitGrok/benchmark.html
 
 ---
 
