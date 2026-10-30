@@ -8,6 +8,8 @@ Talk to your GitHub repository. Ask questions, get architect-level answers.
 ![Ollama](https://img.shields.io/badge/Ollama-Embeddings-black?style=flat-square)
 ![Pinecone](https://img.shields.io/badge/Pinecone-Serverless-00B4CC?style=flat-square)
 
+**Live benchmark:** https://<username>.github.io/GitGrok/benchmark.html
+
 ---
 
 ## About
@@ -22,6 +24,10 @@ The pipeline ingests code with intelligent chunking, generates hybrid vectors (d
 - Multi-file relationship analysis
 - Zero-inference mode (only references visible code, refuses to guess)
 - Fast inference via Groq (sub-5-second typical responses)
+
+## Evaluation
+
+GitGrok is benchmarked weekly by an automated harness: 35 queries against spring-petclinic-rest, run by GitHub Actions, with every run saved to`eval-history/` and shown on the live dashboard.
 
 ---
 
