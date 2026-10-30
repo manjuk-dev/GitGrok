@@ -1,0 +1,419 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="dark">
+    <meta name="description" content="Automated retrieval benchmark for GitGrok, a RAG code-search tool.">
+    <title>GitGrok retrieval benchmark</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap"
+          rel="stylesheet">
+    <style>
+        :root {
+          --bg: #0d1117;
+          --panel: #161b22;
+          --border: #30363d;
+          --text: #e6edf3;
+          --muted: #9ba3ad;
+          --dim: #848d97;
+          --pass: #3fb950;
+          --fail: #f85149;
+          --warn: #d29922;
+          --blue: #58a6ff;
+          --sans: "Geist", system-ui, -apple-system, "Segoe UI", sans-serif;
+          --mono: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        }
+        * { box-sizing: border-box; }
+        html { color-scheme: dark; background: var(--bg); }
+        body { margin: 0; background: var(--bg); color: var(--text); font: 400 14px/1.5 var(--sans); -webkit-font-smoothing: antialiased; }
+        a { color: inherit; }
+        a:focus-visible, button:focus-visible, input:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+        .page { max-width: 1120px; margin: 0 auto; padding: 28px 24px 56px; }
+        .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+        .header { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; margin-bottom: 24px; }
+        .brand { margin: 0; font-size: 24px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.2; }
+        .tagline { margin: 2px 0 0; font-size: 13px; color: var(--muted); }
+        .meta { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; font-size: 12.5px; color: var(--muted); }
+        .tag { border: 1px solid var(--blue); color: var(--blue); border-radius: 4px; padding: 0 7px; font-weight: 500; font-size: 12px; }
+        .mono { font-family: var(--mono); }
+        .btn { border: 1px solid var(--border); border-radius: 6px; padding: 5px 12px; color: var(--text); text-decoration: none; font-weight: 500; font-size: 12.5px; }
+        .btn:hover { border-color: var(--dim); }
+
+        .card { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; }
+        .section { margin-top: 16px; }
+        h2 { margin: 0; font-size: 14px; font-weight: 600; }
+        .desc { margin: 2px 0 0; font-size: 12.5px; color: var(--muted); }
+        .pad { padding: 16px 18px; }
+
+        .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+        .kpi { padding: 16px 18px; }
+        .lab { font-size: 13px; color: var(--muted); }
+        .val { font: 500 34px/1.1 var(--mono); letter-spacing: -0.02em; margin-top: 8px; font-variant-numeric: tabular-nums; }
+        .delta { font-size: 12.5px; margin-top: 8px; color: var(--muted); }
+        .delta.good { color: var(--pass); }
+        .delta.bad { color: var(--fail); }
+        .hint { font-size: 12.5px; color: var(--muted); margin-top: 4px; }
+
+        .bd-top { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+        .segs { display: flex; gap: 3px; margin: 14px 0 12px; }
+        .seg { flex: 1; height: 20px; border-radius: 2px; background: var(--pass); }
+        .seg.f { background: var(--fail); }
+        .legend { display: flex; gap: 20px; flex-wrap: wrap; font-size: 12.5px; color: var(--muted); }
+        .sw { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+
+        .charts { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 16px; }
+        .chart { padding: 16px 18px 8px; }
+        .chead { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
+        .keys { display: flex; gap: 16px; flex-wrap: wrap; font-size: 12px; color: var(--muted); }
+        .key { display: inline-flex; align-items: center; gap: 6px; }
+        svg { display: block; width: 100%; height: auto; overflow: visible; }
+        .grid line { stroke: var(--border); stroke-dasharray: 2 4; }
+        .axis text { fill: var(--dim); font: 11px var(--mono); }
+        .endlab { font: 500 11.5px var(--mono); }
+
+        .cats { display: grid; grid-template-columns: repeat(3, 1fr); border-top: 1px solid var(--border); margin-top: 14px; }
+        .cat { padding: 16px 18px; }
+        .cat + .cat { border-left: 1px solid var(--border); }
+        .cnt { font: 500 28px/1.1 var(--mono); margin-top: 4px; font-variant-numeric: tabular-nums; }
+        .cat .d { font-size: 12.5px; color: var(--muted); margin-top: 2px; }
+        .bar { height: 4px; background: var(--border); border-radius: 2px; margin: 10px 0 8px; overflow: hidden; }
+        .bar i { display: block; height: 100%; border-radius: 2px; }
+        .cat .cd { font-size: 12.5px; color: var(--muted); }
+        .note-row { padding: 0 18px 16px; font-size: 13px; color: var(--muted); }
+
+        .toolbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; padding: 16px 18px; border-bottom: 1px solid var(--border); }
+        .tools { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+        .search { background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 5px 10px; border-radius: 6px; font: 400 12.5px var(--sans); width: 220px; }
+        .search::placeholder { color: var(--dim); }
+        .ctl { display: inline-flex; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; flex-wrap: wrap; }
+        .ctl button { background: transparent; color: var(--muted); border: 0; padding: 5px 11px; font: 500 12.5px var(--sans); cursor: pointer; border-radius: 0; }
+        .ctl button + button { border-left: 1px solid var(--border); }
+        .ctl button[aria-pressed="true"] { background: var(--text); color: var(--bg); }
+        .scroll { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; min-width: 680px; text-align: left; }
+        th { font-weight: 500; font-size: 12px; color: var(--muted); padding: 10px 18px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+        td { padding: 11px 18px; border-bottom: 1px solid var(--border); vertical-align: top; font-size: 13px; }
+        tr:last-child td { border-bottom: 0; }
+        .exp { font: 12px/1.5 var(--mono); color: var(--muted); }
+        .exp span { color: var(--dim); }
+        .rs { white-space: nowrap; }
+        .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 7px; }
+        .runs { display: inline-flex; align-items: center; gap: 10px; }
+        .hist { display: inline-flex; gap: 3px; }
+        .hs { width: 10px; height: 10px; border-radius: 2px; background: var(--pass); }
+        .hs.f { background: var(--fail); }
+        .frac { font: 12px var(--mono); color: var(--muted); }
+        .empty { text-align: center; color: var(--muted); padding: 24px 18px; }
+        .muted { color: var(--muted); }
+
+        .kv { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px 24px; margin-top: 14px; }
+        .k { font-size: 12px; color: var(--muted); }
+        .x { font: 400 13px/1.4 var(--mono); margin-top: 2px; word-break: break-all; }
+          .scoring { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border); }
+  .scoring h3 { margin: 0 0 10px; font-size: 13px; font-weight: 600; }
+  .scoring dl { display: grid; grid-template-columns: 160px 1fr; gap: 8px 20px; margin: 0; }
+  .scoring dt { font-size: 12.5px; font-weight: 500; }
+  .scoring dd { margin: 0; font-size: 12.5px; color: var(--muted); }
+        footer { margin-top: 16px; display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; font-size: 12.5px; color: var(--dim); }
+        footer nav { display: flex; gap: 20px; }
+        footer a { color: var(--muted); }
+        .status { text-align: center; padding: 64px 20px; color: var(--muted); }
+        .status.error { color: var(--fail); }
+
+        @media (max-width: 900px) {
+          .kpis { grid-template-columns: repeat(2, 1fr); }
+          .charts { grid-template-columns: 1fr; }
+          .cats { grid-template-columns: 1fr; }
+          .cat + .cat { border-left: 0; border-top: 1px solid var(--border); }
+        }
+        @media (max-width: 560px) {
+          .kpis { grid-template-columns: 1fr; }
+          .search { width: 100%; }
+          .scoring dl { grid-template-columns: 1fr; gap: 2px; }
+          .scoring dd { margin-bottom: 8px; }
+        }
+    </style>
+</head>
+<body>
+<div class="page">
+    <div id="app">
+        <div class="status">Loading benchmark runs…</div>
+    </div>
+</div>
+<noscript><p class="page">This dashboard needs JavaScript to load the benchmark runs.</p></noscript>
+
+<script>
+    (function () {
+      "use strict";
+
+      // Set your GitHub username here, or open the page with ?owner=<username>&repo=<repo>.
+      // On GitHub Pages the owner and repository name are detected from the URL.
+      const DEFAULT_OWNER = "manjuk-dev";
+
+      const params = new URLSearchParams(location.search);
+      const CFG = {
+        owner: params.get("owner") || DEFAULT_OWNER,
+        name: params.get("repo") || "GitGrok",
+        branch: params.get("branch") || "main",
+        dir: "eval-history",
+        historyRuns: 8
+      };
+      if (!CFG.owner && /\.github\.io$/.test(location.hostname)) {
+        CFG.owner = location.hostname.split(".")[0];
+        const seg = location.pathname.split("/")[1];
+        if (seg && !/\./.test(seg) && !params.get("repo")) CFG.name = seg;
+      }
+
+      const app = document.getElementById("app");
+
+      const REASONS = {
+        not_found: { label: "Not found", desc: "Relevant code or information wasn't found.", color: "var(--warn)" },
+        wrong_answer: { label: "Wrong answer", desc: "A response was returned, but it was incorrect.", color: "var(--fail)" },
+        no_response: { label: "No response", desc: "The system returned no usable answer or timed out.", color: "var(--dim)" }
+      };
+
+      const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+      const pct = v => (v == null ? "–" : v.toFixed(1) + "%");
+      const secs = v => (v / 1000).toFixed(2) + " s";
+      const msf = v => Math.round(v).toLocaleString() + " ms";
+      const dShort = d => d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+      const tShort = d => d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit", hour12: false });
+      const utc = d => d.toISOString().slice(0, 16).replace("T", " ") + " UTC";
+
+      function runLabels(runs) {
+        const counts = {};
+        runs.forEach(r => { const k = dShort(r.date); counts[k] = (counts[k] || 0) + 1; });
+        return runs.map(r => (counts[dShort(r.date)] > 1 ? dShort(r.date) + " " + tShort(r.date) : dShort(r.date)));
+      }
+
+      function delta(cur, prev, kind, goodWhenUp, hasPrev) {
+        if (cur == null || !hasPrev) return "";
+        if (prev == null) return '<div class="delta">first tracked run</div>';
+        const d = cur - prev;
+        if (Math.abs(d) < 0.05) return '<div class="delta">no change since the previous run</div>';
+        const good = (d > 0) === goodWhenUp;
+        const val = kind === "pts" ? Math.abs(d).toFixed(1) + " pts" : Math.abs(d / 1000).toFixed(2) + " s";
+        return '<div class="delta ' + (good ? "good" : "bad") + '">' + (d > 0 ? "+" : "−") + val + " since the previous run</div>";
+      }
+
+      async function load() {
+        if (!CFG.owner) {
+          throw new Error("Set DEFAULT_OWNER to your GitHub username near the top of this file, or open the page with ?owner=<username>.");
+        }
+        const listUrl = "https://api.github.com/repos/" + CFG.owner + "/" + CFG.name + "/contents/" + CFG.dir + "?ref=" + CFG.branch;
+        const res = await fetch(listUrl, { headers: { Accept: "application/vnd.github+json" } });
+        if (!res.ok) {
+          throw new Error(res.status === 403
+            ? "GitHub's API rate limit was reached. Try again in a few minutes."
+            : "Couldn't list " + CFG.dir + "/ (GitHub returned " + res.status + "). Check the repository name and that the repository is public.");
+        }
+        const files = (await res.json()).filter(f => f.type === "file" && f.name.endsWith(".json"));
+        const runs = await Promise.all(files.map(async f => {
+          const r = await fetch(f.download_url);
+          if (!r.ok) throw new Error("Couldn't read " + f.name + " (status " + r.status + ").");
+          const j = await r.json();
+          return Object.assign({}, j, { file: f.name, date: new Date(j.timestamp) });
+        }));
+        runs.sort((a, b) => a.date - b.date);
+        return runs;
+      }
+
+      function chart(o) {
+        const W = 520, H = 200, m = { t: 18, r: 16, b: 26, l: 44 };
+        const iw = W - m.l - m.r, ih = H - m.t - m.b, n = o.labels.length;
+        const x = i => m.l + (n === 1 ? iw / 2 : (i * iw) / (n - 1));
+        const y = v => m.t + ih - ((v - o.yMin) / (o.yMax - o.yMin)) * ih;
+        const step = Math.ceil(n / 6);
+        let s = '<svg viewBox="0 0 ' + W + " " + H + '" role="img" aria-label="' + esc(o.aria) + '"><g class="grid">';
+        o.ticks.forEach(t => { s += '<line x1="' + m.l + '" x2="' + (W - m.r) + '" y1="' + y(t) + '" y2="' + y(t) + '"/>'; });
+        s += '</g><g class="axis">';
+        o.ticks.forEach(t => { s += '<text x="' + (m.l - 8) + '" y="' + (y(t) + 4) + '" text-anchor="end">' + o.fmtTick(t) + "</text>"; });
+        o.labels.forEach((l, i) => {
+          if (i % step === 0 || i === n - 1) s += '<text x="' + x(i) + '" y="' + (H - 6) + '" text-anchor="middle">' + esc(l) + "</text>";
+        });
+        s += "</g>";
+        o.series.forEach(se => {
+          let d = "", pen = false;
+          se.values.forEach((v, i) => {
+            if (v == null) { pen = false; return; }
+            d += (pen ? "L" : "M") + x(i).toFixed(1) + " " + y(v).toFixed(1) + " ";
+            pen = true;
+          });
+          s += '<path d="' + d + '" fill="none" style="stroke:' + se.color + '" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"' + (se.dash ? ' stroke-dasharray="' + se.dash + '"' : "") + "/>";
+          se.values.forEach((v, i) => {
+            if (v == null) return;
+            s += '<circle cx="' + x(i).toFixed(1) + '" cy="' + y(v).toFixed(1) + '" r="3.5" style="fill:' + se.color + '"><title>' + esc(se.name + ", " + o.labels[i] + ": " + o.fmtVal(v)) + "</title></circle>";
+          });
+        });
+        const lasts = o.series.map(se => {
+          for (let i = se.values.length - 1; i >= 0; i--) if (se.values[i] != null) return { se: se, i: i, v: se.values[i] };
+          return null;
+        }).filter(Boolean).sort((a, b) => b.v - a.v);
+        lasts.forEach((l, k) => {
+          s += '<text class="endlab" x="' + x(l.i).toFixed(1) + '" y="' + (y(l.v) + (k === 0 ? -9 : 18)).toFixed(1) + '" text-anchor="end" style="fill:' + l.se.color + '">' + esc(o.fmtVal(l.v)) + "</text>";
+        });
+        return s + "</svg>";
+      }
+
+      function keys(series) {
+        return '<div class="keys">' + series.map(se =>
+          '<span class="key"><svg width="20" height="8" aria-hidden="true"><line x1="0" y1="4" x2="20" y2="4" style="stroke:' + se.color + '" stroke-width="2"' + (se.dash ? ' stroke-dasharray="4 3"' : "") + "/></svg>" + esc(se.name) + "</span>"
+        ).join("") + "</div>";
+      }
+
+      function render(runs) {
+        const L = runs[runs.length - 1];
+        const P = runs.length > 1 ? runs[runs.length - 2] : null;
+        const hasPrev = !!P;
+        const labels = runLabels(runs);
+        const fails = L.failures || [];
+        const failedSets = runs.map(r => new Set((r.failures || []).map(f => f.query)));
+        const inN = L.in_scope_accuracy ? Math.round(L.hits / (L.in_scope_accuracy / 100)) : null;
+        const failedCount = L.total_queries - L.hits;
+
+        const rows = fails.map(f => ({
+          f: f,
+          q: f.query || "(query text not recorded)",
+          hist: failedSets.map(s => s.has(f.query)),
+          reason: REASONS[f.reason] ? f.reason : "unknown"
+        }));
+        const counts = { not_found: 0, wrong_answer: 0, no_response: 0, unknown: 0 };
+        rows.forEach(r => { counts[r.reason]++; });
+        const known = counts.not_found + counts.wrong_answer + counts.no_response;
+        const nEvery = hasPrev ? rows.filter(r => r.hist.every(Boolean)).length : 0;
+        const recovered = hasPrev ? (P.failures || []).filter(f => !failedSets[failedSets.length - 1].has(f.query)).length : 0;
+        const summary = !hasPrev
+          ? "First tracked run."
+          : nEvery + " failed in every run, " + (rows.length - nEvery) + " new or intermittent" + (recovered ? ", " + recovered + " recovered since the previous run" : "") + ".";
+
+        const segs = Array.from({ length: L.total_queries }, (_, i) => '<i class="seg' + (i < L.hits ? "" : " f") + '"></i>').join("");
+
+        const acc = [
+          { name: "In-scope", values: runs.map(r => (r.in_scope_accuracy == null ? null : r.in_scope_accuracy)), color: "var(--blue)" },
+          { name: "Overall", values: runs.map(r => r.accuracy), color: "var(--muted)", dash: "5 4" }
+        ];
+        const maxLat = Math.max.apply(null, runs.map(r => r.p95_latency || 0));
+        const latMax = Math.max(1000, Math.ceil((maxLat * 1.1) / 1000) * 1000);
+        const latStep = latMax <= 4000 ? 1000 : latMax / 4;
+        const latTicks = []; for (let t = 0; t <= latMax + 1; t += latStep) latTicks.push(t);
+        const lat = [
+          { name: "Median", values: runs.map(r => r.p50_latency), color: "var(--blue)" },
+          { name: "95th percentile", values: runs.map(r => r.p95_latency), color: "var(--muted)", dash: "5 4" }
+        ];
+
+        let analysis;
+        if (!rows.length) {
+          analysis = '<div class="note-row">No failed queries in the latest run.</div>';
+        } else if (known > 0) {
+          analysis = '<div class="cats">' + Object.keys(REASONS).map(k => {
+            const n = counts[k], p = Math.round((n / rows.length) * 100);
+            return '<div class="cat"><div class="lab">' + REASONS[k].label + '</div><div class="cnt">' + n + '</div><div class="d">' + p + '% of failures</div>' +
+              '<div class="bar"><i style="width:' + p + "%;background:" + REASONS[k].color + '"></i></div><div class="cd">' + REASONS[k].desc + "</div></div>";
+          }).join("") + "</div>";
+        } else {
+          analysis = '<div class="note-row">Failure reasons are recorded from the next run onward.</div>';
+        }
+
+        const filters = [["all", "All " + rows.length]];
+        Object.keys(REASONS).forEach(k => { if (counts[k] > 0) filters.push([k, REASONS[k].label + " " + counts[k]]); });
+        if (counts.unknown > 0) filters.push(["unknown", "Not recorded " + counts.unknown]);
+        const ctl = filters.length > 1
+          ? '<div class="ctl" role="group" aria-label="Filter failed queries">' + filters.map((f, i) =>
+              '<button type="button" data-f="' + f[0] + '" aria-pressed="' + (i === 0 ? "true" : "false") + '">' + esc(f[1]) + "</button>").join("") + "</div>"
+          : "";
+
+        const kv = (k, v) => '<div><div class="k">' + k + '</div><div class="x">' + esc(v) + "</div></div>";
+        const repoUrl = "https://github.com/" + CFG.owner + "/" + CFG.name;
+
+        app.innerHTML =
+          '<header class="header"><div><h1 class="brand">GitGrok</h1><p class="tagline">Hybrid RAG evaluation harness</p></div>' +
+          '<div class="meta"><span class="tag">Latest run</span><span class="mono">' + esc(utc(L.date)) + '</span><a class="btn" href="' + repoUrl + '" target="_blank" rel="noopener">View repository</a></div></header>' +
+
+          '<div class="kpis">' +
+            '<div class="card kpi"><div class="lab">Overall accuracy</div><div class="val">' + pct(L.accuracy) + "</div>" + delta(L.accuracy, P && P.accuracy, "pts", true, hasPrev) + '<div class="hint">' + L.hits + " of " + L.total_queries + " queries correct</div></div>" +
+            '<div class="card kpi"><div class="lab">In-scope accuracy</div><div class="val">' + pct(L.in_scope_accuracy) + "</div>" + delta(L.in_scope_accuracy, P && P.in_scope_accuracy, "pts", true, hasPrev) + '<div class="hint">' + (inN ? L.hits + " of " + inN + " in-scope queries" : "not tracked in earlier runs") + "</div></div>" +
+            '<div class="card kpi"><div class="lab">Median response time</div><div class="val">' + secs(L.p50_latency) + "</div>" + delta(L.p50_latency, P && P.p50_latency, "ms", false, hasPrev) + '<div class="hint">Typical response time</div></div>' +
+            '<div class="card kpi"><div class="lab">95th percentile</div><div class="val">' + secs(L.p95_latency) + "</div>" + delta(L.p95_latency, P && P.p95_latency, "ms", false, hasPrev) + '<div class="hint">95% of queries finish within this time</div></div>' +
+          "</div>" +
+
+          '<section class="card pad section"><div class="bd-top"><div><h2>Latest run, query by query</h2><p class="desc">Each block is one query.</p></div><div class="mono muted">' + L.total_queries + " queries</div></div>" +
+            '<div class="segs" role="img" aria-label="' + L.hits + " of " + L.total_queries + ' queries passed">' + segs + "</div>" +
+            '<div class="legend"><span><i class="sw" style="background:var(--pass)"></i>Correct ' + L.hits + '</span><span><i class="sw" style="background:var(--fail)"></i>Failed ' + failedCount + "</span></div></section>" +
+
+          '<div class="charts">' +
+            '<section class="card chart"><div class="chead"><h2>Accuracy by run</h2>' + keys(acc) + "</div>" +
+              chart({ labels: labels, series: acc, yMin: 0, yMax: 100, ticks: [0, 25, 50, 75, 100], fmtTick: t => t + "%", fmtVal: pct, aria: "Line chart of in-scope and overall accuracy for each run" }) + "</section>" +
+            '<section class="card chart"><div class="chead"><h2>Response time by run</h2>' + keys(lat) + "</div>" +
+              chart({ labels: labels, series: lat, yMin: 0, yMax: latMax, ticks: latTicks, fmtTick: t => (t / 1000) + " s", fmtVal: secs, aria: "Line chart of median and 95th percentile response time for each run" }) + "</section>" +
+          "</div>" +
+
+          '<section class="card section"><div class="pad" style="padding-bottom:0"><h2>Failure analysis</h2><p class="desc">What went wrong in the latest run. ' + esc(summary) + "</p></div>" + analysis + "</section>" +
+
+          '<section class="card section"><div class="toolbar"><h2>Failed queries (' + rows.length + ')</h2><div class="tools"><input id="search" class="search" type="search" placeholder="Search failed queries" aria-label="Search failed queries">' + ctl + "</div></div>" +
+            '<div class="scroll"><table><thead><tr><th scope="col">Query</th><th scope="col">Expected</th><th scope="col">Reason</th><th scope="col">Last runs</th></tr></thead><tbody id="rows"></tbody></table></div></section>' +
+
+          '<section class="card pad section"><h2>Run details</h2><div class="kv">' +
+            kv("Timestamp", utc(L.date)) + kv("Queries", L.total_queries) + kv("Correct", L.hits) + kv("Overall accuracy", pct(L.accuracy)) + kv("In-scope accuracy", pct(L.in_scope_accuracy)) +
+            kv("Median response time", msf(L.p50_latency)) + kv("95th percentile", msf(L.p95_latency)) + kv("Runs tracked", runs.length) + kv("Result file", CFG.dir + "/" + L.file) + "</div>" +
+          '<div class="scoring"><h3>How scoring works</h3><dl>' +
+          '<dt>Ground truth matching</dt><dd>Answers are correct when they explicitly name the expected file or method.</dd>' +
+          '<dt>Negative query handling</dt><dd>Queries targeting absent code pass when GitGrok correctly reports no relevant results.</dd>' +
+          '<dt>Indexing constraints</dt><dd>In-scope accuracy filters out class-location queries that fall outside method-level indexing limits.</dd>' +
+          '<dt>Score variance</dt><dd>Final text generation causes natural noise (~1 query variance per benchmark run).</dd>' +
+        '</dl></div></section>' +
+
+          '<footer><span>Updated by GitHub Actions</span><nav><a href="' + repoUrl + "/tree/" + CFG.branch + "/" + CFG.dir + '" target="_blank" rel="noopener">Raw results</a><a href="' + repoUrl + '/actions/workflows/eval.yml" target="_blank" rel="noopener">Workflow runs</a></nav></footer>';
+
+        const tbody = document.getElementById("rows");
+        const search = document.getElementById("search");
+        const btns = document.querySelectorAll(".ctl button");
+        let current = "all";
+
+        function draw() {
+          const q = (search.value || "").toLowerCase();
+          const list = rows.filter(r => (current === "all" || r.reason === current) && (!q || r.q.toLowerCase().includes(q)));
+          if (!list.length) {
+            tbody.innerHTML = '<tr><td colspan="4" class="empty">' + (rows.length ? "No failed queries match." : "No failed queries in the latest run.") + "</td></tr>";
+            return;
+          }
+          tbody.innerHTML = list.map(r => {
+            const files = (r.f.expectedFile || []).join(", ");
+            const methods = (r.f.expectedMethod || []).join(", ");
+            const exp = files ? esc(files) + (methods ? "<br><span>" + esc(methods) + "</span>" : "") : "none expected";
+            const shown = r.hist.slice(-CFG.historyRuns);
+            const squares = shown.map(v => '<i class="hs' + (v ? " f" : "") + '" title="' + (v ? "failed" : "passed") + '"></i>').join("");
+            const failedIn = shown.filter(Boolean).length;
+            const reason = REASONS[r.reason]
+              ? '<span class="dot" style="background:' + REASONS[r.reason].color + '"></span>' + REASONS[r.reason].label
+              : '<span class="muted">Not recorded</span>';
+            return "<tr><td>" + esc(r.q) + '</td><td class="exp">' + exp + '</td><td class="rs">' + reason + '</td><td><span class="runs">' +
+              '<span class="hist" role="img" aria-label="Oldest to newest: ' + shown.map(v => (v ? "failed" : "passed")).join(", ") + '">' + squares + "</span>" +
+              '<span class="frac">' + failedIn + "/" + shown.length + "</span></span></td></tr>";
+          }).join("");
+        }
+
+        btns.forEach(b => b.addEventListener("click", () => {
+          current = b.dataset.f;
+          btns.forEach(x => x.setAttribute("aria-pressed", x === b ? "true" : "false"));
+          draw();
+        }));
+        search.addEventListener("input", draw);
+        draw();
+      }
+
+      load().then(runs => {
+        if (!runs.length) {
+          app.innerHTML = '<div class="status">No benchmark runs yet. Trigger the GitGrok Eval workflow once, then reload this page.</div>';
+          return;
+        }
+        render(runs);
+      }).catch(err => {
+        app.innerHTML = '<div class="status error">' + esc(err.message) + "</div>";
+      });
+    })();
+</script>
+</body>
+</html>
