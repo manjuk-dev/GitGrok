@@ -83,7 +83,7 @@ public class HybridPineconeVectorStore implements VectorStore {
 
             // Query Pinecone
             var response = pineconeIndex.query(
-                    request.getTopK(),    // int
+                    Math.max(request.getTopK() * 3, 15),    // int
                     denseVector,          // List<Float>
                     sparseIndices,        // List<Long>
                     sparseValues,         // List<Float>
@@ -113,9 +113,17 @@ public class HybridPineconeVectorStore implements VectorStore {
                 fields.forEach((k, v) -> {
                     if (!k.equals("document_content")) metadata.put(k, v.getStringValue());
                 });
+                metadata.put("score", match.getScore());
+                log.info("hit {}.{} score={}", metadata.get("className"), metadata.get("methodName"), match.getScore());
                 results.add(new Document(content, metadata));
             }
-            return results;
+            Map<String, Integer> seen = new HashMap<>();
+            List<Document> deduped = new ArrayList<>();
+            for (Document d : results) {
+                String key = String.valueOf(d.getMetadata().get("methodName"));
+                if (seen.merge(key, 1, Integer::sum) <= 2) deduped.add(d);
+            }
+            return deduped.subList(0, Math.min(request.getTopK(), deduped.size()));
         } catch (Exception e) {
             log.error("EXCEPTION: Search failed for query: {}{}", request.getQuery(), e);
             return Collections.emptyList();  // or throw a custom exception

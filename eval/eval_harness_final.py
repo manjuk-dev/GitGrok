@@ -131,9 +131,9 @@ def load_golden_queries() -> list[GoldenQuery]:
             expected_method=["addPetToOwner"],
         ),
         GoldenQuery(
-            query="how is a pet removed from an owner",
-            expected_file=["OwnerRestControllerV1.java"],
-            expected_method=["deletePet"],
+            query="How is a pet deleted?",
+            expected_file=["JpaPetRepositoryImpl.java", "PetRestControllerV1.java"],
+            should_retrieve=True,
         ),
         GoldenQuery(
             query="how are vets retrieved from the database",

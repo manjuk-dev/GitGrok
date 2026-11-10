@@ -7,8 +7,7 @@ import org.junit.jupiter.api.Test;
 import java.lang.reflect.Method;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Tests for FileExtractor.
@@ -21,23 +20,23 @@ class FileExtractorTest {
     // ---------- null / empty / no-match input ----------
 
     @Test
-    void nullQuery_returnsNull() {
-        assertNull(FileExtractor.extractFileNames(null));
+    void nullQuery_returnsEmptyList() {
+        assertTrue(FileExtractor.extractFileNames(null).isEmpty());
     }
 
     @Test
-    void emptyQuery_returnsNull() {
-        assertNull(FileExtractor.extractFileNames(""));
+    void emptyQuery_returnsEmptyList() {
+        assertTrue(FileExtractor.extractFileNames("").isEmpty());
     }
 
     @Test
-    void blankQuery_returnsNull() {
-        assertNull(FileExtractor.extractFileNames("   "));
+    void blankQuery_returnsEmptyList() {
+        assertTrue(FileExtractor.extractFileNames("   ").isEmpty());
     }
 
     @Test
-    void noFileReference_returnsNull() {
-        assertNull(FileExtractor.extractFileNames("show me how retrieval works"));
+    void noFileReference_returnsEmptyList() {
+        assertTrue(FileExtractor.extractFileNames("show me how retrieval works").isEmpty());
     }
 
     // ---------- case 1: explicit 'file X.java' / 'from X.java' ----------
@@ -101,9 +100,8 @@ class FileExtractorTest {
     @Test
     void lowercaseStart_doesNotMatch() {
         // STANDALONE_CLASS_PATTERN requires the name to start with an uppercase letter
-        assertNull(FileExtractor.extractFileNames("check config.java for the ollama settings"));
+        assertTrue(FileExtractor.extractFileNames("check config.java for the ollama settings").isEmpty());
     }
-
     // ---------- case 5: class name without .java extension ----------
 
     @Test
