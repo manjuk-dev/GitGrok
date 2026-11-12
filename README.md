@@ -27,7 +27,19 @@ The pipeline ingests code with intelligent chunking, generates hybrid vectors (d
 
 ## Evaluation
 
-GitGrok is benchmarked weekly by an automated harness: 35 queries against spring-petclinic-rest, run by GitHub Actions, with every run saved to`eval-history/` and shown on the live dashboard.
+GitGrok is evaluated weekly using an automated benchmark of 35 queries against `spring-petclinic-rest`, executed through GitHub Actions. Every run is archived in `eval-history/` and visualized on the live dashboard.
+
+**Latest results:**
+
+- Overall accuracy: 26/35 (74.3%)
+- In-scope accuracy: 26/30 (86.7%)
+
+**Known limitations:**
+
+- Entity-definition queries are out of scope due to method-level chunking.
+- Four multi-hop or paraphrase queries fail because the relevant chunks rank outside the top 5.
+
+The golden query set was revised on 2026-11-12. Earlier results are preserved in `eval-history-archive/` and are not directly comparable.
 
 ---
 
