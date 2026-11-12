@@ -205,9 +205,9 @@ def load_golden_queries() -> list[GoldenQuery]:
             adversarial=True,
         ),
         GoldenQuery(
-            query="where is the logic for registering an animal under a customer",
-            expected_file=["OwnerRestControllerV1.java", "Pet.java"],
-            expected_method=["addPetToOwner"],
+            query="How does the system find a customer's medical history for their animal?",
+            expected_file=["JdbcOwnerRepositoryImpl.java"],
+            expected_method=["findByLastName", "loadOwnersPetsAndVisits"],
             adversarial=True,
         ),
         GoldenQuery(
@@ -253,10 +253,10 @@ def load_golden_queries() -> list[GoldenQuery]:
             adversarial=True,
         ),
         GoldenQuery(
-            query="where is pet creation implemented",
-            expected_file=["OwnerRestControllerV1.java", "PetRestControllerV1.java"],
-            expected_method=["addPetToOwner"],
-            adversarial=True,
+            query="How are veterinarians and their associated specialties loaded from the database?",
+            expected_file=["JdbcVetRepositoryImpl.java"],
+            expected_method=["findAll"],
+            should_retrieve=True,
         ),
 
         # ============================================================
@@ -303,9 +303,10 @@ def load_golden_queries() -> list[GoldenQuery]:
             adversarial=True,
         ),
         GoldenQuery(
-            query="how are invalid pet ids handled",
-            expected_file=["PetRestControllerV1.java", "OwnerRestControllerV1.java"],
-            adversarial=True,
+            query="What happens when a request references a pet ID that does not exist?",
+            expected_file=["ExceptionControllerAdvice.java"],
+            expected_method=["handleDataIntegrityViolationException"],
+            should_retrieve=True,
         ),
         GoldenQuery(
             query="how does the API handle a missing owner",
@@ -314,9 +315,10 @@ def load_golden_queries() -> list[GoldenQuery]:
             adversarial=True,
         ),
         GoldenQuery(
-            query="where is validation performed when creating a visit",
-            expected_file=["Visit.java", "VisitRestControllerV1.java"],
-            adversarial=True,
+            query="How does the application update an existing pet's details?",
+            expected_file=["JdbcPetRepositoryImpl.java"],
+            expected_method=["save"],
+            should_retrieve=True,
         ),
         GoldenQuery(
             query="how are vet specialties updated",

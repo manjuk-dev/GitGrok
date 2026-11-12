@@ -120,12 +120,13 @@ public class HybridPineconeVectorStore implements VectorStore {
             Map<String, Integer> seen = new HashMap<>();
             List<Document> deduped = new ArrayList<>();
             for (Document d : results) {
-                String key = String.valueOf(d.getMetadata().get("methodName"));
+                String key = d.getMetadata().get("path") + "#" +
+                        d.getMetadata().get("methodName");
                 if (seen.merge(key, 1, Integer::sum) <= 2) deduped.add(d);
             }
             return deduped.subList(0, Math.min(request.getTopK(), deduped.size()));
         } catch (Exception e) {
-            log.error("EXCEPTION: Search failed for query: {}{}", request.getQuery(), e);
+            log.error("EXCEPTION: Search failed for query: {}", request.getQuery(), e);
             return Collections.emptyList();  // or throw a custom exception
         }
     }
