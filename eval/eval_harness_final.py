@@ -133,7 +133,7 @@ def load_golden_queries() -> list[GoldenQuery]:
         GoldenQuery(
             query="How is a pet deleted?",
             expected_file=["JpaPetRepositoryImpl.java", "PetRestControllerV1.java"],
-            expected_method=["delete"]
+            expected_method=["delete"],
             should_retrieve=True,
         ),
         GoldenQuery(
