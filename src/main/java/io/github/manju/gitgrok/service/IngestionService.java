@@ -127,27 +127,20 @@ public class IngestionService {
         Map<Long, Float> freq = new HashMap<>();
 
         // Split and clean tokens
-        String[] tokens = enrichedText.toLowerCase().split("\\W+");
+        String[] rawTokens = enrichedText.split("\\W+");   // original case preserved
 
-        for (String token : tokens) {
-            if (token.length() <= 2) continue;  // Skip single chars
+        for (String rawToken : rawTokens) {
+            String normalizedToken = rawToken.toLowerCase();
+            if (normalizedToken.length() <= 2) continue;
 
             float weight = 1.0f;
+            if (isStopWord(normalizedToken))        weight = 0.1f;
+            else if (isKeyword(normalizedToken))    weight = 0.3f;
+            else if (isMethodName(rawToken))        weight = 3.0f;
+            else if (isClassName(rawToken))         weight = 2.5f;
+            else if (isPropertyName(rawToken))      weight = 2.0f;
 
-            if (isMethodName(token)) {
-                weight = 3.0f;  // Highest priority
-            } else if (isClassName(token)) {
-                weight = 2.5f;
-            } else if (isPropertyName(token)) {
-                weight = 2.0f;
-            } else if (isKeyword(token)) {
-                weight = 0.3f;  // Penalize keywords
-            } else if (isStopWord(token)) {
-                weight = 0.1f;  // Skip common words
-            }
-
-            // Hash token and merge weight
-            long idx = Math.abs((long) token.hashCode());
+            long idx = Math.abs((long) normalizedToken.hashCode());
             freq.merge(idx, weight, Float::sum);
         }
 
