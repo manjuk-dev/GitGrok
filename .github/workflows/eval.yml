@@ -27,7 +27,7 @@ jobs:
         working-directory: eval
         env:
           GITGROK_BASE_URL: ${{ secrets.GITGROK_BASE_URL }}
-        run: python eval_harness_final.py
+        run: python eval_harness.py
 
       - name: Save report to history
         if: always()
