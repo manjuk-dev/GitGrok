@@ -1,0 +1,106 @@
+{
+  "timestamp": "2026-11-16T12:03:54.120925+00:00",
+  "total_queries": 35,
+  "hits": 26,
+  "accuracy": 74.29,
+  "p50_latency": 1927.1,
+  "p95_latency": 3865.1,
+  "estimated_cost": 0.0532,
+  "failures": [
+    {
+      "query": "where is the owner entity defined",
+      "expectedFile": [
+        "Owner.java"
+      ],
+      "expectedMethod": null,
+      "negative": false,
+      "reason": "not_found"
+    },
+    {
+      "query": "where is the pet entity defined",
+      "expectedFile": [
+        "Pet.java"
+      ],
+      "expectedMethod": null,
+      "negative": false,
+      "reason": "not_found"
+    },
+    {
+      "query": "where is the vet entity defined",
+      "expectedFile": [
+        "Vet.java"
+      ],
+      "expectedMethod": null,
+      "negative": false,
+      "reason": "not_found"
+    },
+    {
+      "query": "where is the visit entity defined",
+      "expectedFile": [
+        "Visit.java"
+      ],
+      "expectedMethod": null,
+      "negative": false,
+      "reason": "not_found"
+    },
+    {
+      "query": "where are pet types defined",
+      "expectedFile": [
+        "PetType.java"
+      ],
+      "expectedMethod": null,
+      "negative": false,
+      "reason": "not_found"
+    },
+    {
+      "query": "how is a visit associated with a pet",
+      "expectedFile": [
+        "OwnerRestControllerV1.java",
+        "VisitRestControllerV1.java"
+      ],
+      "expectedMethod": [
+        "addVisitToOwner",
+        "addVisit"
+      ],
+      "negative": false,
+      "reason": "wrong_answer"
+    },
+    {
+      "query": "how does creating a visit for a pet flow through the service layer",
+      "expectedFile": [
+        "VisitRestControllerV1.java",
+        "ClinicServiceImpl.java"
+      ],
+      "expectedMethod": [
+        "addVisit"
+      ],
+      "negative": false,
+      "reason": "wrong_answer"
+    },
+    {
+      "query": "How does the system find a customer's medical history for their animal?",
+      "expectedFile": [
+        "JdbcOwnerRepositoryImpl.java"
+      ],
+      "expectedMethod": [
+        "findByLastName",
+        "loadOwnersPetsAndVisits"
+      ],
+      "negative": false,
+      "reason": "not_found"
+    },
+    {
+      "query": "where is the database access code for pet owners",
+      "expectedFile": [
+        "JdbcOwnerRepositoryImpl.java",
+        "JpaOwnerRepositoryImpl.java"
+      ],
+      "expectedMethod": [
+        "findByLastName"
+      ],
+      "negative": false,
+      "reason": "not_found"
+    }
+  ],
+  "in_scope_accuracy": 86.67
+}
